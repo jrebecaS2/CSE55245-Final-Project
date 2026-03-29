@@ -1,3 +1,12 @@
+# Model checkpoints and large output files
+sft_checkpoint/
+rm_checkpoint/
+pref_checkpoint/
+eval-results/
+*.safetensors
+*.pt
+*.bin
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
