@@ -8,7 +8,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments
 from train_sft import SFTTrainer
 
 
-MAX_LENGTH = 1024
+MAX_LENGTH = 2048
 
 ASSISTANT_HEADER = "<|assistant|>"
 
@@ -104,10 +104,10 @@ def main():
 
     training_args = TrainingArguments(
         output_dir="./sft_checkpoint",
-        per_device_train_batch_size=4,
-        gradient_accumulation_steps=8,       # effective batch size = 4 * 8 = 32
-        num_train_epochs=1,
-        learning_rate=2e-5,
+        per_device_train_batch_size=2,
+        gradient_accumulation_steps=16,      # effective batch size = 2 * 16 = 32
+        num_train_epochs=2,
+        learning_rate=5e-5,
         warmup_ratio=0.03,
         lr_scheduler_type="cosine",
         logging_steps=10,
