@@ -75,10 +75,11 @@ def tokenize_with_assistant_labels(example, tokenizer):
 
 
 def main():
-    model_name = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+    model_name = "TinyLlama/TinyLlama-1.1B-intermediate-step-1431k-3T"
+    tokenizer_name = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
     dataset_name = "allenai/tulu-3-sft-olmo-2-mixture-0225"
 
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
     model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype="bfloat16")
 
     dataset = load_dataset(dataset_name)
@@ -107,7 +108,7 @@ def main():
         per_device_train_batch_size=2,
         gradient_accumulation_steps=16,      # effective batch size = 2 * 16 = 32
         num_train_epochs=2,
-        learning_rate=5e-5,
+        learning_rate=2e-5,
         warmup_ratio=0.03,
         lr_scheduler_type="cosine",
         logging_steps=10,
@@ -117,6 +118,7 @@ def main():
         gradient_checkpointing=True,         # saves ~40% VRAM
         dataloader_num_workers=4,
         report_to="none",
+        weight_decay=0.1,
     )
 
     trainer = SFTTrainer(
