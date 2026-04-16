@@ -1,5 +1,6 @@
 import sys
 import os
+import argparse
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -75,6 +76,11 @@ def tokenize_with_assistant_labels(example, tokenizer):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--sanity", action="store_true",
+                        help="Short 100-step run to verify training is working")
+    args = parser.parse_args()
+
     model_name = "TinyLlama/TinyLlama-1.1B-intermediate-step-1431k-3T"
     tokenizer_name = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
     dataset_name = "allenai/tulu-3-sft-olmo-2-mixture-0225"
@@ -95,24 +101,54 @@ def main():
     columns_to_keep = ["input_ids", "attention_mask", "labels"]
     train_dataset.set_format(type="torch", columns=columns_to_keep)
 
-    sample = train_dataset[0]
-    decoded_all = tokenizer.decode(sample["input_ids"])
-    label_ids = [tid for tid in sample["labels"].tolist() if tid != -100]
-    decoded_labels = tokenizer.decode(label_ids) if label_ids else "<empty>"
-    print("SANITY CHECK — first training example")
-    print("FULL TEXT:\n", decoded_all[:500], "...")
-    print("ASSISTANT-ONLY (what loss sees):\n", decoded_labels[:500], "...")
+    # ── Diagnostic: check label coverage across multiple examples ──
+    print("=" * 60)
+    print("LABEL DIAGNOSTIC — checking first 50 examples")
+    print("=" * 60)
+    zero_label = 0
+    total_label_tokens = 0
+    total_content_tokens = 0
+    for i in range(min(50, len(train_dataset))):
+        sample = train_dataset[i]
+        labs = sample["labels"].tolist()
+        n_labeled = sum(1 for l in labs if l != -100)
+        n_content = sum(1 for m in sample["attention_mask"].tolist() if m == 1)
+        total_label_tokens += n_labeled
+        total_content_tokens += n_content
+        if n_labeled == 0:
+            zero_label += 1
+        if i < 5:
+            decoded_all = tokenizer.decode(sample["input_ids"])
+            label_ids = [tid for tid in labs if tid != -100]
+            decoded_labels = tokenizer.decode(label_ids) if label_ids else "<empty>"
+            print(f"\nExample {i}: {n_labeled}/{n_content} tokens labeled")
+            print(f"  FULL TEXT (first 300 chars): {decoded_all[:300]}")
+            print(f"  LABELED TEXT (first 300 chars): {decoded_labels[:300]}")
+
+    avg_labeled = total_label_tokens / min(50, len(train_dataset))
+    avg_content = total_content_tokens / min(50, len(train_dataset))
+    print(f"\n{'=' * 60}")
+    print(f"SUMMARY: {zero_label}/50 examples have ZERO labels")
+    print(f"  Avg labeled tokens per example: {avg_labeled:.1f}")
+    print(f"  Avg content tokens per example: {avg_content:.1f}")
+    print(f"  Label ratio: {avg_labeled/max(avg_content,1)*100:.1f}%")
+    print(f"{'=' * 60}")
+    if avg_labeled < 10:
+        print("WARNING: Very few labels per example! The labeling logic is likely broken.")
+        print("Training loss will appear near-zero but the model won't learn.")
+    print()
 
     training_args = TrainingArguments(
-        output_dir="./sft_checkpoint",
+        output_dir="./sft_sanity_check" if args.sanity else "./sft_checkpoint",
         per_device_train_batch_size=2,
         gradient_accumulation_steps=16,      # effective batch size = 2 * 16 = 32
-        num_train_epochs=2,
+        max_steps=100 if args.sanity else -1,
+        num_train_epochs=1 if args.sanity else 2,
         learning_rate=2e-5,
         warmup_ratio=0.03,
         lr_scheduler_type="cosine",
-        logging_steps=10,
-        save_steps=500,
+        logging_steps=10 if not args.sanity else 5,
+        save_steps=500 if not args.sanity else 50,
         save_total_limit=3,
         bf16=True,
         gradient_checkpointing=True,         # saves ~40% VRAM

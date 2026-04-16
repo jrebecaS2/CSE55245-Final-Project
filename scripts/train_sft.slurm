@@ -31,4 +31,5 @@ mkdir -p logs
 cd $SLURM_SUBMIT_DIR/..
 
 # ─── Run training ───
-python scripts/run_sft.py
+# Pass --sanity for a quick 100-step test run
+python scripts/run_sft.py "$@"
