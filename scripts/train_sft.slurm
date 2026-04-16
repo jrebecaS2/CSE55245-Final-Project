@@ -14,6 +14,8 @@
 export CC=gcc
 export CXX=g++
 export TRITON_CACHE_DIR=/fs/scratch/${SLURM_JOB_ACCOUNT}/${USER}/triton_cache
+export HF_HOME=/fs/scratch/PAS3272/jrskohler/.cache/huggingface
+export TRANSFORMERS_CACHE=/fs/scratch/PAS3272/jrskohler/.cache/huggingface
 
 # Use scratch for HF cache so downloads don't fill home dir
 export HF_HOME=/fs/scratch/${SLURM_JOB_ACCOUNT}/${USER}/.cache/huggingface
