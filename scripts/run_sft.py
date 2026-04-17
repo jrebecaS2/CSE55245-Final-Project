@@ -2,6 +2,8 @@ import sys
 import os
 import argparse
 
+from evals.olmes.oe_eval.dependencies.BFCL.bfcl.model_handler import parser
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from datasets import load_dataset
@@ -79,6 +81,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--sanity", action="store_true",
                         help="Short 100-step run to verify training is working")
+    parser.add_argument("--max_steps", type=int, default=None)
     args = parser.parse_args()
 
     model_name = "TinyLlama/TinyLlama-1.1B-intermediate-step-1431k-3T"
@@ -142,8 +145,8 @@ def main():
         output_dir="./sft_sanity_check" if args.sanity else "./sft_checkpoint",
         per_device_train_batch_size=1 if args.sanity else 2,
         gradient_accumulation_steps=1 if args.sanity else 16,   # sanity: no accum for speed
-        max_steps=20 if args.sanity else -1,
-        num_train_epochs=1 if args.sanity else 2,
+        max_steps=args.max_steps if args.max_steps is not None else (20 if args.sanity else -1),
+        num_train_epochs=1 if args.sanity else (0 if args.max_steps is not None else 2),
         learning_rate=2e-5,
         warmup_ratio=0.03,
         lr_scheduler_type="cosine",
