@@ -23,7 +23,7 @@ dataset_name=(
     "harmbench::default"
     "xstest::default"
 )
-model_path="ajagdale/cse-5525-sft/tree/main"
+model_path="ajagdale/cse-5525-sft"
 for dataset in "${dataset_name[@]}"; do
     echo "Evaluating on ${dataset}..."
     if [ "${dataset}" == "gsm8k" ]; then
