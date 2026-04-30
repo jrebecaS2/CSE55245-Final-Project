@@ -1,7 +1,14 @@
 # Model checkpoints and large output files
 sft_checkpoint/
+dpo_checkpoint/
+dpo_checkpoint_old/
 rm_checkpoint/
+evals/dpo*
+evals/olmes/
+explorations/
 pref_checkpoint/
+merge_*
+weights/
 eval-results/
 *.safetensors
 *.pt

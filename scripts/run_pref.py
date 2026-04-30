@@ -4,7 +4,7 @@ import argparse
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from train_sft import SFTConfig, SFTTrainer
+from train_pref import PREFConfig, PREFTrainer
 import yaml
 
 def load_config(path: str) -> dict:
@@ -13,19 +13,23 @@ def load_config(path: str) -> dict:
     print(f"Config loaded: {path}")
     return cfg
 
-def build_training_args(cfg: dict) -> SFTConfig:
+def build_training_args(cfg: dict) -> PREFConfig:
     """Read hyperparameters from the config dict into an SFTConfig dataclass."""
-    return SFTConfig(
-        # model
+    return PREFConfig(
+         # model
         model_name=cfg.get("model_name", "meta-llama/Llama-3.2-1B"),
-
+        filter_dataset = cfg.get("filter_dataset", False),
+        
+        load_checkpoint_path=cfg.get("load_checkpoint_path", None),
+ 
         # data
-        dataset=cfg.get("dataset", "tulu3"),
+        dataset=cfg.get("dataset", "olmo2_preference"),
         max_length=cfg.get("max_length", 4096),
         batch_size=cfg.get("batch_size", 128),
  
-        # optimizer
-        learning_rate=cfg.get("learning_rate", 5e-4),
+        # dpo
+        dpo_beta=cfg.get("dpo_beta", 0.1),
+        learning_rate=cfg.get("learning_rate", 1e-5),
         lr_schedule=cfg.get("lr_schedule", "linear"),
         num_epochs=cfg.get("num_epochs", 1),
         max_steps=cfg.get("max_steps", None),
@@ -42,7 +46,6 @@ def build_training_args(cfg: dict) -> SFTConfig:
 def parse_args():
     parser = argparse.ArgumentParser(description="Run SFT training via Tinker.")
     parser.add_argument("--config", type=str, required=True, help="Path to a YAML config file",)
-    parser.add_argument("--checkpoint", type=str, default=None, help="Path to a checkpoint directory to resume training from.")
     return parser.parse_args()
 
 def main():
@@ -50,11 +53,10 @@ def main():
     cfg = load_config(args.config)
  
     training_args = build_training_args(cfg)
-    if args.checkpoint:
-        training_args.load_checkpoint_path = args.checkpoint
-        print(f"Resuming from checkpoint: {args.checkpoint}")
+    print(f"Resuming from checkpoint: {training_args.load_checkpoint_path}")
+    
     print(training_args)
-    trainer = SFTTrainer(
+    trainer = PREFTrainer(
         model=None,
         tokenizer=None,
         train_dataset=None,
