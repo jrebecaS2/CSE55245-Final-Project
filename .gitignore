@@ -7,7 +7,7 @@ evals/dpo*
 evals/olmes/
 explorations/
 pref_checkpoint/
-merge_*
+merge_sft.py
 weights/
 eval-results/
 *.safetensors

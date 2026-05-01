@@ -1,185 +1,122 @@
-# CSE 5525: Default Project - Spring 2026
+﻿# CSE 5525 Final Project
 
 ## Overview
 
-This is the default project for CSE 5525 (Foundations of Speech and Language Processing). In this project, you will implement and train a language model using various training paradigms, then evaluate its performance on several benchmark tasks.
+This repository contains code for the CSE 5525 Default Project.
 
-## Project Structure
+The project includes:
+- supervised fine-tuning (SFT)
+- preference optimization / DPO training
+- evaluation wrappers for GSM8K, IFEval, and MBPP
+- exploration for data filtering and alignment strength explorations
 
-```
-├── README.md                 # This file
-├── train_sft.py              # Template for Supervised Fine-Tuning
-├── train_rm.py               # Template for Reward Modeling
-├── train_pref.py             # Template for Preference Optimization
-├── configs/                  # Configuration files for training
-├── scripts/                  # Utility scripts
-└── evals/                    # Evaluation suite (OLMES)
-    ├── run_eval.sh           # Script to run evaluations
-    └── olmes/                # AI2's Open Language Model Evaluation System
-```
+## Repository Layout
 
-## Getting Started
+- train_sft.py — SFT trainer implementation using Tinker
+- train_pref.py — DPO / preference optimization trainer and filtered dataset builder
+- merge_model.py — helper for merging a PEFT adapter into a full model checkpoint
+- configs/ — YAML training configuration files
+- scripts/ — run wrappers and analysis utilities
+- explorations/ — metric result directories for analysis
+- evals/ — OLMES evaluation harness
 
-### 1. Environment Setup
+## Running Training
 
-Set up your Python environment with the required dependencies:
+### Supervised Fine-Tuning (SFT)
 
-```bash
-# Clone the repository
-git clone --recurse-submodules https://github.com/shocheen/cse-5525-spring-2026-default-project.git
-cd cse-5525-spring-2026-default-project
+Run SFT with a YAML config:
 
-# Create and activate a virtual environment
-python -m venv .venv
-source .venv/bin/activate
+`powershell
+python scripts/run_sft.py --config <config-file>
+`
 
-# Install dependencies (adjust based on your requirements)
-uv pip install tinker
-```
+To resume training from a checkpoint:
 
-### 2. Training
+`powershell
+python scripts/run_sft.py --config <config-file> --checkpoint <checkpoint-dir>
+`
 
-We provide three template files for different training approaches:
+### Preference Optimization (DPO)
 
-#### Supervised Fine-Tuning (SFT)
-Implement your SFT training logic in `train_sft.py`. This is the standard approach for instruction-tuning language models.
+Run DPO training with a YAML config:
 
-An example of how to do this has already been provider by Tinker for you [here](https://github.com/thinking-machines-lab/tinker-cookbook/tree/main/tinker_cookbook/recipes/chat_sl)
+`powershell
+python scripts/run_pref.py --config <config-file>
+`
 
-#### Reward Modeling (RM)
-Implement your reward model training in `train_rm.py`. This trains a model to predict human preferences.
+### Merge Adapters
 
-An example of how to do this has already been provider by Tinker for you [here](https://github.com/thinking-machines-lab/tinker-cookbook/tree/main/tinker_cookbook/recipes/preference/rlhf)
+After training a PEFT adapter, merge it into a full checkpoint using the generic `merge_model.py` helper.
 
-#### Preference Optimization (PREF)
-Implement your preference optimization (e.g., DPO, PPO) in `train_pref.py`. This aligns the model using preference data.
+`powershell
+python merge_model.py --base-model <base-model> --adapter <adapter-path> --output-dir <output-dir>
+`
 
-An example of how to do this has already been provider by Tinker for you [here](https://github.com/thinking-machines-lab/tinker-cookbook/tree/main/tinker_cookbook/recipes/preference)
+Optional download from Tinker
 
-Each template provides a basic class structure. You should:
-1. Complete the `train()` method with your training loop
-2. Add data loading and preprocessing
-3. Implement checkpointing and logging
-4. Add configuration management via the `configs/` directory
+`powershell
+python merge_model.py --base-model <base-model> --adapter <adapter-path> --output-dir <output-dir> --tinker-download-path <tinker-uri>
+`
+
+## Config Files
+
+Current configs:
+- configs/sft-1.yaml (SFT baseline)
+- configs/dpo-1.yaml (SFT+DPO)
+- configs/dpo-b-low.yaml (exploration 2)
+- configs/dpo-b-high.yaml (exploration 2)
+- configs/dpo-filtered.yaml (exploration 1)
+
+These files define model settings, optimizer parameters, DPO beta values, and logging/checkpoint behavior.
 
 ## Evaluation
 
-After training your model, you must evaluate it using **OLMES** (Open Language Model Evaluation System), AI2's evaluation suite.
+The repo includes an evaluation harness under evals/.
 
-### Evaluation Tasks
+## Exploration Scripts
 
-Your model will be evaluated on the following benchmarks:
+These scripts support analysis of filtering, model comparisons, and score aggregation.
 
-| Task | Description |
-|------|-------------|
-| **GSM8K** | Grade school math word problems (mathematical reasoning) |
-| **IFEval** | Instruction following evaluation |
-| **MBPP** | Mostly Basic Python Problems (code generation) |
-| **HarmBench** | Safety and harmfulness evaluation |
-| **XSTest** | Safety and harmfulness evaluation |
+### scripts/analyze_filtering.py
 
-### Running Evaluations
+Analyzes preference-data filtering behavior and produces:
+- filtered example summaries and reasons
+- prompt-type classification (safety, coding, math, instruction-following, general)
+- qualitative examples for each filter category
+- comparison plots for filtered vs. unfiltered behavior
+- optional inference using saved model checkpoints
 
-1. **Setup OLMES:**
+### scripts/compare_filter_results.py
 
-```bash
-cd evals/olmes
+Compares two IFEval prediction files and produces:
+- score comparisons at prompt and instruction levels
+- instruction-type breakdowns
+- examples where filtering changed performance
+- qualitative response-difference analysis
 
-# Install with uv (recommended)
-export CC=gcc
-export CXX=g++
-uv sync
-uv sync --group gpu  # for GPU/vLLM support
+### scripts/agg_model_scores.py
 
-# Or install with pip
-pip install -e .
-pip install -e ".[gpu]"  # for GPU support
-```
+Aggregates evaluation metrics from multiple exploration directories.
+- reads JSON results in explorations/gsm8k-metrics/, explorations/ifeval-metrics/, explorations/mbpp-metrics/
+- collects primary_score values per model
+- computes task averages and overall model averages
 
-2. **Run evaluations:**
-You can decide to run your evaluations on Tinker or on OSC. If you decide to use Tinker for evaluation, you will be responsible to porting this code evaluation harness into Tinker for your usage.
+### scripts/plots.py
 
-To this code on OSC, please replace `xxxx` in `run_eval.sh` with the correct project.
+Provides plotting helpers for:
+- DPO beta sweep visualizations
+- filtered vs unfiltered model comparisons
 
-Use the provided evaluation script:
+### Training wrappers
 
-```bash
-cd ../
-bash run_eval.sh
-```
+- scripts/run_sft.py — loads a YAML config and runs SFT training
+- scripts/run_pref.py — loads a YAML config and runs preference/DPO training
 
-Or run individual evaluations:
+## Workflow
 
-```bash
-# GSM8K (Mathematical Reasoning)
-olmes --model <your-model-path> --task gsm8k --output-dir <output-dir>
-
-# IFEval (Instruction Following)
-olmes --model <your-model-path> --task ifeval --output-dir <output-dir>
-
-# MBPP (Code Generation)
-olmes --model <your-model-path> --task mbpp --output-dir <output-dir>
-
-# HarmBench (Safety Evaluation)
-olmes --model <your-model-path> --task harmbench::wildguard_reasoning_answer --output-dir <output-dir>
-```
-
-### Evaluation Output
-
-Each evaluation will produce:
-- `predictions.jsonl` - Model predictions for each task instance
-- `metrics.json` - Aggregated metrics and scores
-- Detailed logs and analysis
-
-## Submission Requirements
-
-You must submit the following:
-
-### 1. Prediction Files
-Submit the `predictions.jsonl` file for **each** evaluation task:
-- `gsm8k-predictions.jsonl`
-- `ifeval-predictions.jsonl`
-- `mbpp-predictions.jsonl`
-- `harmbench-predictions.jsonl`
-
-### 2. Final Model
-Submit your trained model checkpoint (or provide a link if hosted on HuggingFace Hub).
-
-### 3. Report
-Submit a written report documenting:
-- Your approach and methodology
-- Training details (hyperparameters, data used, compute resources)
-- Results and analysis
-- Ablation studies (if any)
-- Discussion of limitations and future work
-
-## Grading Criteria
-
-Your project will be graded on:
-1. **Implementation Quality** - Clean, well-documented code
-2. **Model Performance** - Scores on the evaluation benchmarks
-3. **Report Quality** - Clarity, completeness, and analysis depth
-4. **Innovation** - Creative approaches or improvements
-
-## Tips
-
-- Start with SFT as a baseline before trying more advanced methods
-- Monitor training loss and validation metrics carefully
-- Use smaller batch sizes with gradient accumulation if memory is limited
-- Test your evaluation pipeline early with a small model
-- Document your experiments thoroughly
-
-## Resources
-
-- [OLMES Documentation](https://github.com/allenai/olmes)
-- [Hugging Face Transformers](https://huggingface.co/docs/transformers)
-- [TRL (Transformer Reinforcement Learning)](https://huggingface.co/docs/trl)
-
-## Questions?
-
-If you have questions about the project, please:
-1. Post them on Teams/Carman
-2. Attend office hours
-3. Email the course TA (Abraham) or Instructor (Sachin)
-
-Good luck!
+1. Run baseline SFT: python scripts/run_sft.py --config configs/sft-1.yaml
+2. Run preference/DPO training: python scripts/run_pref.py --config configs/dpo-1.yaml
+3. Run DPO training with explorations using configs dpo-b-low. dpo-b-high, dpo-filtered
+4. Merge the adapter 
+5. Run evaluations through evals/run_eval.sh
+6. Use analysis scripts in scripts/ to inspect filtering and compare results

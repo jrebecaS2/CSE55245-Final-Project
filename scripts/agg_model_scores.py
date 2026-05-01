@@ -4,7 +4,7 @@ from collections import defaultdict
 
 # aggregate evaluation metrics across all models + tasks
 
-ROOT = "scripts"
+ROOT = "./explorations"
 MODELS = ["dpo-full", "dpo-300", "dpo-filtered", "dpo-beta01", "dpo-beta5"]
 TASKS = ["gsm8k-metrics", "ifeval-metrics", "mbpp-metrics"]
 
