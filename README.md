@@ -26,13 +26,13 @@ The project includes:
 
 Run SFT with a YAML config:
 
-`powershell
+`
 python scripts/run_sft.py --config <config-file>
 `
 
 To resume training from a checkpoint:
 
-`powershell
+`
 python scripts/run_sft.py --config <config-file> --checkpoint <checkpoint-dir>
 `
 
@@ -40,7 +40,7 @@ python scripts/run_sft.py --config <config-file> --checkpoint <checkpoint-dir>
 
 Run DPO training with a YAML config:
 
-`powershell
+`
 python scripts/run_pref.py --config <config-file>
 `
 
@@ -48,13 +48,13 @@ python scripts/run_pref.py --config <config-file>
 
 After training a PEFT adapter, merge it into a full checkpoint using the generic `merge_model.py` helper.
 
-`powershell
+`
 python merge_model.py --base-model <base-model> --adapter <adapter-path> --output-dir <output-dir>
 `
 
 Optional download from Tinker
 
-`powershell
+`
 python merge_model.py --base-model <base-model> --adapter <adapter-path> --output-dir <output-dir> --tinker-download-path <tinker-uri>
 `
 
