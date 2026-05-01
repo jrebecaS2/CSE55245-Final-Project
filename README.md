@@ -84,8 +84,7 @@ Analyzes preference-data filtering behavior and produces:
 - prompt-type classification (safety, coding, math, instruction-following, general)
 - qualitative examples for each filter category
 - comparison plots for filtered vs. unfiltered behavior
-- optional inference using saved model checkpoints
-
+  
 ### scripts/compare_filter_results.py
 
 Compares two IFEval prediction files and produces:
